@@ -134,7 +134,7 @@ export async function pollStellar(env: Env): Promise<void> {
         paidAt: updated.paidAt!,
         payments: updated.payments,
         metadata: updated.metadata,
-      });
+      }, { callbackUrl: updated.callbackUrl, callbackSecret: updated.callbackSecret });
       console.log(`[stellar] Payment confirmed: order=${updated.id} tx=${payment.transaction_hash}`);
     } else if (updated.status === "confirming") {
       await removeFromPendingList(env, "xlm", updated.id);
@@ -152,7 +152,7 @@ export async function pollStellar(env: Env): Promise<void> {
         paidAt: Date.now(),
         payments: updated.payments,
         metadata: updated.metadata,
-      });
+      }, { callbackUrl: updated.callbackUrl, callbackSecret: updated.callbackSecret });
       console.log(
         `[stellar] Partial payment: order=${updated.id} paid=${updated.paidAmount}/${updated.amount}`
       );

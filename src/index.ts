@@ -122,7 +122,7 @@ async function processConfirmations(
       paidAt: order.paidAt!,
       payments: order.payments,
       metadata: order.metadata,
-    });
+    }, { callbackUrl: order.callbackUrl, callbackSecret: order.callbackSecret });
     console.log(`[cron] Confirmed after ${requiredConfirmations} checks: order=${order.id}`);
   }
 }

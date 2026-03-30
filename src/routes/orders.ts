@@ -65,6 +65,22 @@ api.post("/orders", async (c) => {
   if (body.metadata !== undefined && (typeof body.metadata !== "object" || Array.isArray(body.metadata))) {
     return c.json({ error: "metadata must be a key-value object" }, 400);
   }
+  if (body.callbackUrl !== undefined) {
+    if (typeof body.callbackUrl !== "string") {
+      return c.json({ error: "callbackUrl must be a string" }, 400);
+    }
+    try {
+      const parsed = new URL(body.callbackUrl);
+      if (parsed.protocol !== "https:") {
+        return c.json({ error: "callbackUrl must use HTTPS" }, 400);
+      }
+    } catch {
+      return c.json({ error: "callbackUrl must be a valid URL" }, 400);
+    }
+  }
+  if (body.callbackSecret !== undefined && typeof body.callbackSecret !== "string") {
+    return c.json({ error: "callbackSecret must be a string" }, 400);
+  }
 
   const env = c.env;
   const chain = body.chain;
@@ -106,6 +122,8 @@ api.post("/orders", async (c) => {
     payments: [],
     metadata: body.metadata,
     idempotencyKey: body.idempotencyKey,
+    callbackUrl: body.callbackUrl,
+    callbackSecret: body.callbackSecret,
   };
 
   await saveOrder(env, order);

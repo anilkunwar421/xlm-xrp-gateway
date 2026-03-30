@@ -73,8 +73,8 @@ npx wrangler secret put WEBHOOK_SECRET   # HMAC-SHA256 secret for signing webhoo
 | `XLM_ADDRESS` | Yes | Stellar wallet address that receives XLM payments |
 | `XRP_ADDRESS` | Yes | XRP wallet address that receives XRP payments |
 | `API_KEY` | Yes | Bearer token required on all `/api/*` requests |
-| `WEBHOOK_URL` | No | URL where payment event webhooks are POSTed. Skipped if empty |
-| `WEBHOOK_SECRET` | No | Secret used to HMAC-SHA256 sign webhook payloads |
+| `WEBHOOK_URL` | No | Default URL where payment event webhooks are POSTed. Can be overridden per order via `callbackUrl`. Skipped if neither is set |
+| `WEBHOOK_SECRET` | No | Default secret used to HMAC-SHA256 sign webhook payloads. Can be overridden per order via `callbackSecret` |
 
 ### 4. Configure environment variables (optional)
 
@@ -126,7 +126,9 @@ Create a new payment order.
   "amount": "10.5",
   "expiresInMinutes": 60,
   "metadata": { "userId": "abc123" },
-  "idempotencyKey": "unique-key-123"
+  "idempotencyKey": "unique-key-123",
+  "callbackUrl": "https://example.com/webhooks/payment",
+  "callbackSecret": "my-hmac-secret"
 }
 ```
 
@@ -137,6 +139,8 @@ Create a new payment order.
 | `expiresInMinutes` | number | No | Minutes until order expires (1–1440, default 60) |
 | `metadata` | object | No | Arbitrary key-value pairs passed through to webhooks |
 | `idempotencyKey` | string | No | Prevents duplicate order creation |
+| `callbackUrl` | string | No | HTTPS URL to receive webhook notifications for this order. Overrides the global `WEBHOOK_URL` |
+| `callbackSecret` | string | No | HMAC-SHA256 secret for signing webhooks to this order's callback. Overrides the global `WEBHOOK_SECRET` |
 
 **Response (201):**
 
@@ -207,7 +211,7 @@ Returns `400` if the order is already in a terminal status (`paid`, `expired`, `
 
 ## Webhooks
 
-When a payment is detected, the worker POSTs a signed JSON payload to your `WEBHOOK_URL`.
+When a payment is detected, the worker POSTs a signed JSON payload to the order's `callbackUrl` (if provided), or the global `WEBHOOK_URL` as a fallback. If neither is configured, webhooks are skipped.
 
 ### Events
 
@@ -235,7 +239,7 @@ When a payment is detected, the worker POSTs a signed JSON payload to your `WEBH
 
 ### Signature Verification
 
-Each webhook includes an `X-Signature` header containing an HMAC-SHA256 hex digest of the raw JSON body, signed with `WEBHOOK_SECRET`.
+Each webhook includes an `X-Signature` header containing an HMAC-SHA256 hex digest of the raw JSON body, signed with the order's `callbackSecret` or the global `WEBHOOK_SECRET`. The header is omitted if no secret is configured.
 
 Verify in Node.js:
 
@@ -253,7 +257,7 @@ Headers sent with each webhook:
 | Header | Value |
 |--------|-------|
 | `Content-Type` | `application/json` |
-| `X-Signature` | HMAC-SHA256 hex digest |
+| `X-Signature` | HMAC-SHA256 hex digest (omitted if no secret configured) |
 | `X-Webhook-Event` | Event name (e.g. `payment.confirmed`) |
 
 Webhooks retry up to 3 times with exponential backoff (1s, 2s, 4s) on failure.

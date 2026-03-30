@@ -2,27 +2,37 @@ import type { Env, WebhookPayload } from "../types";
 
 const WEBHOOK_TIMEOUT_MS = 10_000; // 10 seconds
 
+export interface WebhookTarget {
+  callbackUrl?: string;
+  callbackSecret?: string;
+}
+
 /**
  * Send a signed webhook to the merchant's backend.
  *
- * Signs the payload with HMAC-SHA256 using WEBHOOK_SECRET.
- * The merchant verifies by computing the same HMAC over the raw body
- * and comparing it to the X-Signature header.
+ * Uses order-level callbackUrl/callbackSecret if provided,
+ * otherwise falls back to the global WEBHOOK_URL/WEBHOOK_SECRET env vars.
+ * If neither is configured, the webhook is skipped.
  *
+ * Signs the payload with HMAC-SHA256.
  * Retries up to 3 times with exponential backoff on failure.
  * Each request has a 10-second timeout.
  */
 export async function sendWebhook(
   env: Env,
-  payload: WebhookPayload
+  payload: WebhookPayload,
+  target?: WebhookTarget
 ): Promise<void> {
-  if (!env.WEBHOOK_URL) {
-    console.warn("No WEBHOOK_URL configured, skipping webhook");
+  const url = target?.callbackUrl || env.WEBHOOK_URL;
+  const secret = target?.callbackSecret || env.WEBHOOK_SECRET;
+
+  if (!url) {
+    console.warn("No callback URL configured, skipping webhook");
     return;
   }
 
   const body = JSON.stringify(payload);
-  const signature = await sign(body, env.WEBHOOK_SECRET);
+  const signature = secret ? await sign(body, secret) : "";
 
   const maxRetries = 3;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -30,13 +40,17 @@ export async function sendWebhook(
     const timeout = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
 
     try {
-      const res = await fetch(env.WEBHOOK_URL, {
-        method: "POST",
-        headers: {
+      const headers: Record<string, string> = {
           "Content-Type": "application/json",
-          "X-Signature": signature,
           "X-Webhook-Event": payload.event,
-        },
+        };
+      if (signature) {
+        headers["X-Signature"] = signature;
+      }
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers,
         body,
         signal: controller.signal,
       });

@@ -6,8 +6,8 @@ export interface Env {
   XLM_ADDRESS: string;
   XRP_ADDRESS: string;
   API_KEY: string;                  // API key required for order creation
-  WEBHOOK_URL: string;
-  WEBHOOK_SECRET: string;
+  WEBHOOK_URL?: string;
+  WEBHOOK_SECRET?: string;
   HORIZON_URL: string;
   XRPL_URL: string;
   ALLOWED_ORIGINS: string;          // comma-separated origins, or "*" for all
@@ -48,6 +48,8 @@ export interface Order {
   paidAmount?: string;    // total paid across all payments
   metadata?: Record<string, string>;
   idempotencyKey?: string;
+  callbackUrl?: string;
+  callbackSecret?: string;
 }
 
 // ─── API Request / Response ──────────────────────────────────────────
@@ -57,6 +59,8 @@ export interface CreateOrderRequest {
   expiresInMinutes?: number; // default 60
   metadata?: Record<string, string>;
   idempotencyKey?: string;
+  callbackUrl?: string;
+  callbackSecret?: string;
 }
 
 export interface CreateOrderResponse {

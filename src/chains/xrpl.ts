@@ -182,7 +182,7 @@ export async function pollXrpl(env: Env): Promise<void> {
         paidAt: updated.paidAt!,
         payments: updated.payments,
         metadata: updated.metadata,
-      });
+      }, { callbackUrl: updated.callbackUrl, callbackSecret: updated.callbackSecret });
       console.log(`[xrpl] Payment confirmed: order=${updated.id} tx=${tx.hash}`);
     } else if (updated.status === "confirming") {
       await removeFromPendingList(env, "xrp", updated.id);
@@ -200,7 +200,7 @@ export async function pollXrpl(env: Env): Promise<void> {
         paidAt: Date.now(),
         payments: updated.payments,
         metadata: updated.metadata,
-      });
+      }, { callbackUrl: updated.callbackUrl, callbackSecret: updated.callbackSecret });
       console.log(
         `[xrpl] Partial payment: order=${updated.id} paid=${updated.paidAmount}/${updated.amount}`
       );
