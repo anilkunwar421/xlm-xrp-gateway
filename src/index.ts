@@ -67,9 +67,9 @@ export default {
   async scheduled(
     _event: ScheduledEvent,
     env: Env,
-    ctx: ExecutionContext
+    _ctx: ExecutionContext
   ): Promise<void> {
-    ctx.waitUntil(runPollers(env));
+    await runPollers(env);
   },
 };
 
