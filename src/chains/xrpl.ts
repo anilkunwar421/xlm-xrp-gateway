@@ -7,9 +7,9 @@ import {
 } from "../services/store";
 import { sendWebhook } from "../services/webhook";
 import { sumAmounts, gte, dropsToXrp } from "../utils/decimal";
+import { parseUrls, fetchWithFallback } from "../utils/fetch";
 
 const CURSOR_KEY = "xrpl:ledger_index";
-const FETCH_TIMEOUT_MS = 15_000;
 
 /**
  * Poll XRPL for new transactions to our address.
@@ -35,24 +35,19 @@ export async function pollXrpl(env: Env): Promise<void> {
     ],
   };
 
-  let res: Response;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const urls = parseUrls(env.XRPL_URL);
 
+  let res: Response;
   try {
-    res = await fetch(env.XRPL_URL, {
+    res = await fetchWithFallback(urls, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-      signal: controller.signal,
     });
   } catch (err) {
-    clearTimeout(timeout);
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[xrpl] Fetch failed: ${message}`);
+    console.error(`[xrpl] All RPC endpoints failed: ${message}`);
     return;
-  } finally {
-    clearTimeout(timeout);
   }
 
   if (!res.ok) {

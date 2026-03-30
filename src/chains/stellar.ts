@@ -7,9 +7,9 @@ import {
 } from "../services/store";
 import { sendWebhook } from "../services/webhook";
 import { sumAmounts, gte } from "../utils/decimal";
+import { parseUrls, fetchWithFallback } from "../utils/fetch";
 
 const CURSOR_KEY = "stellar:cursor";
-const FETCH_TIMEOUT_MS = 15_000;
 
 /**
  * Poll Stellar Horizon for new payments to our address.
@@ -21,32 +21,19 @@ export async function pollStellar(env: Env): Promise<void> {
   const cursor = await env.CURSORS.get(CURSOR_KEY);
   const requiredConfirmations = parseInt(env.CONFIRMATIONS_REQUIRED || "1", 10);
 
-  const url = new URL(
-    `/accounts/${env.XLM_ADDRESS}/payments`,
-    env.HORIZON_URL
-  );
-  url.searchParams.set("order", "asc");
-  url.searchParams.set("limit", "50");
-  if (cursor) {
-    url.searchParams.set("cursor", cursor);
-  }
+  const bases = parseUrls(env.HORIZON_URL);
+  const path = `/accounts/${env.XLM_ADDRESS}/payments`;
+  const params = new URLSearchParams({ order: "asc", limit: "50" });
+  if (cursor) params.set("cursor", cursor);
+  const urls = bases.map((base) => `${base.replace(/\/$/, "")}${path}?${params}`);
 
   let res: Response;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
   try {
-    res = await fetch(url.toString(), {
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-    });
+    res = await fetchWithFallback(urls, { headers: { Accept: "application/json" } });
   } catch (err) {
-    clearTimeout(timeout);
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[stellar] Fetch failed: ${message}`);
+    console.error(`[stellar] All Horizon endpoints failed: ${message}`);
     return;
-  } finally {
-    clearTimeout(timeout);
   }
 
   if (!res.ok) {
@@ -191,22 +178,17 @@ async function fetchMemoForPayment(
 ): Promise<string | undefined> {
   if (payment.memo) return payment.memo;
 
-  const txUrl = `${env.HORIZON_URL}/transactions/${payment.transaction_hash}`;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const bases = parseUrls(env.HORIZON_URL);
+  const path = `/transactions/${payment.transaction_hash}`;
+  const urls = bases.map((base) => `${base.replace(/\/$/, "")}${path}`);
 
   try {
-    const res = await fetch(txUrl, {
-      headers: { Accept: "application/json" },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    const res = await fetchWithFallback(urls, { headers: { Accept: "application/json" } });
     if (!res.ok) return undefined;
 
     const tx = (await res.json()) as { memo?: string; memo_type?: string };
     return tx.memo;
   } catch {
-    clearTimeout(timeout);
     return undefined;
   }
 }

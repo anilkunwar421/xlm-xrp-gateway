@@ -82,10 +82,23 @@ These are non-sensitive and can be set in `wrangler.jsonc` under `vars`:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HORIZON_URL` | `https://horizon.stellar.org` | Stellar Horizon API endpoint |
-| `XRPL_URL` | `https://s1.ripple.com:51234` | XRPL JSON-RPC endpoint |
+| `HORIZON_URL` | See below | Stellar Horizon API endpoints (comma-separated) |
+| `XRPL_URL` | See below | XRPL JSON-RPC endpoints (comma-separated) |
 | `ALLOWED_ORIGINS` | `*` | Comma-separated CORS origins, or `*` for all |
 | `CONFIRMATIONS_REQUIRED` | `1` | Poll cycles before marking payment as confirmed |
+
+#### RPC Endpoint Fallback
+
+Both `HORIZON_URL` and `XRPL_URL` support **comma-separated URLs** for automatic failover. If the first endpoint returns a 5xx error or is unreachable, the next one is tried, and so on.
+
+Defaults in `wrangler.jsonc`:
+
+```
+HORIZON_URL: https://horizon.stellar.org, https://horizon.stellar.lobstr.co, https://stellar-horizon.satoshipay.io
+XRPL_URL:    https://s1.ripple.com:51234, https://s2.ripple.com:51234, https://xrplcluster.com
+```
+
+You can override these with your own preferred endpoints or add private RPC providers for better reliability.
 
 ### 5. Run
 

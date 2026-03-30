@@ -1,12 +1,13 @@
 {
-  "name": "crypto-checkout",
+  "name": "xlm-xrp-gateway",
   "main": "src/index.ts",
   "compatibility_date": "2024-06-20",
 
-  // Cron trigger: polls chains every minute.
-  // Free plan minimum is 1 minute. For faster polling you need Workers Paid plan.
+  // Cron trigger: polls chains every minute (free plan minimum).
+  // Workers Paid plan: uncomment the 10-second interval for faster payment detection.
   "triggers": {
     "crons": ["*/1 * * * *"]
+    // "crons": ["*/10 * * * * *"]  // Every 10 seconds (Paid plan only)
   },
 
   // ─── KV Namespaces ──────────────────────────────────────────────────
@@ -34,9 +35,9 @@
   // See README.md for details.
 
   "vars": {
-    // Blockchain RPC endpoints (defaults to mainnet)
-    "HORIZON_URL": "https://horizon.stellar.org",
-    "XRPL_URL": "https://s1.ripple.com:51234",
+    // Blockchain RPC endpoints (comma-separated, tried in order as fallback)
+    "HORIZON_URL": "https://horizon.stellar.org,https://horizon.stellar.lobstr.co,https://stellar-horizon.satoshipay.io",
+    "XRPL_URL": "https://s1.ripple.com:51234,https://s2.ripple.com:51234,https://xrplcluster.com",
 
     // CORS: comma-separated allowed origins, or "*" for all (NOT recommended for production)
     "ALLOWED_ORIGINS": "*",
