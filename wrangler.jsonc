@@ -1,0 +1,59 @@
+{
+  "name": "crypto-checkout",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-06-20",
+
+  // Cron trigger: polls chains every minute.
+  // Free plan minimum is 1 minute. For faster polling you need Workers Paid plan.
+  "triggers": {
+    "crons": ["*/1 * * * *"]
+  },
+
+  // ─── KV Namespaces ──────────────────────────────────────────────────
+  // Create these before deploying:
+  //   npx wrangler kv namespace create ORDERS
+  //   npx wrangler kv namespace create CURSORS
+  // Then paste the returned IDs below.
+  "kv_namespaces": [
+    { "binding": "ORDERS", "id": "<your-orders-kv-id>" },
+    { "binding": "CURSORS", "id": "<your-cursors-kv-id>" }
+  ],
+
+  // ─── Rate Limiting (Cloudflare Workers bindings — atomic) ───────────
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 60, "period": 60 }
+    }
+  ],
+
+  // ─── Environment Variables ──────────────────────────────────────────
+  // Secrets (set via `wrangler secret put <NAME>`):
+  //   XLM_ADDRESS, XRP_ADDRESS, API_KEY, WEBHOOK_URL, WEBHOOK_SECRET
+  // See README.md for details.
+
+  "vars": {
+    // Blockchain RPC endpoints (defaults to mainnet)
+    "HORIZON_URL": "https://horizon.stellar.org",
+    "XRPL_URL": "https://s1.ripple.com:51234",
+
+    // CORS: comma-separated allowed origins, or "*" for all (NOT recommended for production)
+    "ALLOWED_ORIGINS": "*",
+
+    // Number of poll cycles a payment must survive before being marked "paid".
+    // Default 1 = instant confirmation (appropriate for XLM/XRP with fast finality).
+    "CONFIRMATIONS_REQUIRED": "1"
+  }
+
+  // ─── Local dev: override with testnet ───────────────────────────────
+  // "env": {
+  //   "dev": {
+  //     "vars": {
+  //       "HORIZON_URL": "https://horizon-testnet.stellar.org",
+  //       "XRPL_URL": "https://s.altnet.rippletest.net:51234",
+  //       "ALLOWED_ORIGINS": "*"
+  //     }
+  //   }
+  // }
+}
