@@ -1,13 +1,12 @@
 {
   "name": "xlm-xrp-gateway",
   "main": "src/index.ts",
-  "compatibility_date": "2024-06-20",
+  "compatibility_date": "2026-03-14",
 
   // Cron trigger: polls chains every minute (free plan minimum).
   // Workers Paid plan: uncomment the 10-second interval for faster payment detection.
   "triggers": {
     "crons": ["*/1 * * * *"]
-    // "crons": ["*/10 * * * * *"]  // Every 10 seconds (Paid plan only)
   },
 
   // ─── KV Namespaces ──────────────────────────────────────────────────
