@@ -92,6 +92,7 @@ api.post("/orders", async (c) => {
       const existingOrder = await getOrder(env, existingOrderId);
       if (existingOrder) {
         const address = chain === "xlm" ? env.XLM_ADDRESS : env.XRP_ADDRESS;
+        const isXlm = chain === "xlm";
         return c.json({
           orderId: existingOrder.id,
           chain: existingOrder.chain,
@@ -99,6 +100,15 @@ api.post("/orders", async (c) => {
           memo: existingOrder.memo,
           amount: existingOrder.amount,
           expiresAt: existingOrder.expiresAt,
+          paymentInstructions: {
+            address,
+            ...(isXlm ? { memo: existingOrder.memo } : { destinationTag: existingOrder.memo }),
+            amount: existingOrder.amount,
+            currency: chain.toUpperCase(),
+            note: isXlm
+              ? `Send exactly ${existingOrder.amount} XLM to ${address} with MEMO: ${existingOrder.memo}`
+              : `Send exactly ${existingOrder.amount} XRP to ${address} with DESTINATION TAG: ${existingOrder.memo}`,
+          },
           _idempotent: true,
         }, 200);
       }
